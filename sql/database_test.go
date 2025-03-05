@@ -1,20 +1,26 @@
 package sql_test
 
 import (
-	"context"
 	"testing"
 
 	"maragu.dev/is"
 
-	"app/sql"
+	"app/sqltest"
 )
 
-func TestDatabase_GetThings(t *testing.T) {
-	t.Run("gets things", func(t *testing.T) {
-		db := sql.NewDatabase(sql.NewDatabaseOptions{})
+func TestDatabase_Migrate(t *testing.T) {
+	t.Run("can migrate down and back up", func(t *testing.T) {
+		db := sqltest.NewDatabase(t)
 
-		things, err := db.GetThings(context.Background())
+		err := db.MigrateDown(t.Context())
 		is.NotError(t, err)
-		is.True(t, len(things) >= 2)
+
+		err = db.MigrateUp(t.Context())
+		is.NotError(t, err)
+
+		var version string
+		err = db.H.Get(t.Context(), &version, "select version from migrations")
+		is.NotError(t, err)
+		is.Equal(t, "1741176647-documents", version)
 	})
 }

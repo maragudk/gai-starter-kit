@@ -28,7 +28,7 @@ RUN go mod download
 COPY . ./
 
 ARG TARGETARCH
-RUN GOOS=linux GOARCH=${TARGETARCH} go build -buildvcs=false -ldflags="-s -w" -o ./app ./cmd/app
+RUN GOOS=linux GOARCH=${TARGETARCH} go build -tags sqlite_fts5 -buildvcs=false -ldflags="-s -w" -o ./app ./cmd/app
 
 
 

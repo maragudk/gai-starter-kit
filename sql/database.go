@@ -1,49 +1,68 @@
-// Package sql provides a [Database].
 package sql
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
-	"math/rand/v2"
 
-	"app/model"
+	sqlitevec "github.com/asg017/sqlite-vec-go-bindings/cgo"
+	"maragu.dev/errors"
+	"maragu.dev/sqlh/sql"
 )
 
-// Database wraps a database connection pool.
 type Database struct {
+	H   *sql.Helper
 	log *slog.Logger
 }
 
 type NewDatabaseOptions struct {
-	Log *slog.Logger
+	Log  *slog.Logger
+	Path string
 }
 
+// NewDatabase with the given options.
+// If no logger is provided, logs are discarded.
 func NewDatabase(opts NewDatabaseOptions) *Database {
 	if opts.Log == nil {
-		opts.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
+		opts.Log = slog.New(slog.DiscardHandler)
 	}
 
 	return &Database{
+		H: sql.NewHelper(sql.NewHelperOptions{
+			Log:  opts.Log,
+			Path: opts.Path,
+		}),
 		log: opts.Log,
 	}
 }
 
-// Connect to the database.
 func (d *Database) Connect() error {
-	d.log.Info("Connecting to database", "driver", "fake")
+	sqlitevec.Auto()
+
+	if err := d.H.Connect(); err != nil {
+		return errors.Wrap(err, "error connecting to database")
+	}
+
+	var vecVersion string
+	if err := d.H.Get(context.Background(), &vecVersion, "select vec_version()"); err != nil {
+		return errors.Wrap(err, "error getting vec version")
+	}
+	d.log.Info("Loaded SQLite vector search extension", "version", vecVersion)
+
 	return nil
 }
 
-// GetThings from the database.
-func (d *Database) GetThings(ctx context.Context) ([]model.Thing, error) {
-	var things []model.Thing
-	n := rand.IntN(8) + 2
-
-	for i := range n {
-		things = append(things, model.Thing{Name: "Thing " + fmt.Sprint(i+1)})
+func (d *Database) MigrateUp(ctx context.Context) error {
+	if err := d.H.MigrateUp(ctx); err != nil {
+		return err
 	}
 
-	return things, nil
+	return nil
+}
+
+func (d *Database) MigrateDown(ctx context.Context) error {
+	if err := d.H.MigrateDown(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

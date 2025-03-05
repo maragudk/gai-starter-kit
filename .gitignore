@@ -1,5 +1,5 @@
+/app.db*
 /cover.out
-/node_modules/
-/package.json
 /public/styles/app.css
 /tailwindcss
+test.db*

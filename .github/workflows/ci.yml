@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: arm64
 
     steps:
       - name: Setup QEMU
@@ -27,7 +27,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -46,10 +46,10 @@ jobs:
           check-latest: true
 
       - name: Build
-        run: go build -v ./...
+        run: go build -v -tags sqlite_fts5 ./...
 
       - name: Test
-        run: go test -v -coverprofile=cover.out -shuffle on ./...
+        run: go test -v -tags sqlite_fts5 -coverprofile=cover.out -shuffle on ./...
 
   lint:
     name: Lint
