@@ -37,7 +37,7 @@ jobs:
 
     services:
       llama32-1b:
-        image: "maragudk/llama-3.2-1b-instruct-q4_k_m"
+        image: "ghcr.io/maragudk/llama.cpp-llama3-1b"
         ports:
           - "8081:8080"
 
