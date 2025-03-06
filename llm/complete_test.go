@@ -1,11 +1,12 @@
 package llm_test
 
 import (
-	"app/llmtest"
 	"testing"
 
 	"maragu.dev/gai"
 	"maragu.dev/is"
+
+	"app/llmtest"
 )
 
 func TestClient_Complete(t *testing.T) {

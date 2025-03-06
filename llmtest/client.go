@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"app/llm"
-
 	"maragu.dev/env"
+
+	"app/llm"
 )
 
 func NewCompleter(t *testing.T) *llm.Client {
