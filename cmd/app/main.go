@@ -20,7 +20,7 @@ func main() {
 
 	// Start the app, exit with a non-zero exit code on errors
 	if err := start(log); err != nil {
-		log.Error("Error starting app", "error", err)
+		log.Error("Error", "error", err)
 		os.Exit(1)
 	}
 }
@@ -36,11 +36,14 @@ func start(log *slog.Logger) error {
 	defer stop()
 
 	// Set up the database, which is injected as a dependency into the HTTP server
-	// Here, the database is just a fake one.
 	db := sql.NewDatabase(sql.NewDatabaseOptions{
-		Log: log,
+		Log:  log,
+		Path: env.GetStringOrDefault("DATABASE_PATH", "app.db"),
 	})
 	if err := db.Connect(); err != nil {
+		return err
+	}
+	if err := db.MigrateUp(ctx); err != nil {
 		return err
 	}
 
