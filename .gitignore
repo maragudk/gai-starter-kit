@@ -1,5 +1,7 @@
 /app.db*
 /cover.out
+/llama.log
+/models/
 /public/styles/app.css
 /tailwindcss
 test.db*
