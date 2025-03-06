@@ -19,8 +19,12 @@ RUN ./tailwindcss -i tailwind.css -o app.css --minify
 
 
 
-FROM --platform=${BUILDPLATFORM} golang AS gobuilder
+FROM golang AS gobuilder
 WORKDIR /app
+
+RUN echo "deb http://deb.debian.org/debian unstable main" >>/etc/apt/sources.list
+RUN set -x && apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y libsqlite3-dev/unstable
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -28,7 +32,7 @@ RUN go mod download
 COPY . ./
 
 ARG TARGETARCH
-RUN GOOS=linux GOARCH=${TARGETARCH} go build -tags sqlite_fts5 -buildvcs=false -ldflags="-s -w" -o ./app ./cmd/app
+RUN GOOS=linux GOARCH=${TARGETARCH} CGO_ENABLED=1 go build -tags sqlite_fts5,libsqlite3 -buildvcs=false -ldflags="-s -w" -o ./app ./cmd/app
 
 
 
