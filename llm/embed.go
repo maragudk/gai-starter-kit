@@ -11,7 +11,7 @@ import (
 // Embed a string to a binary vector.
 // See https://huggingface.co/blog/embedding-quantization for details on binary embeddings.
 func (c *Client) Embed(ctx context.Context, text string) ([]int, error) {
-	res, err := c.oc.Client.Embeddings.New(ctx, openai.EmbeddingNewParams{
+	res, err := c.client.Client.Embeddings.New(ctx, openai.EmbeddingNewParams{
 		Input:          openai.F[openai.EmbeddingNewParamsInputUnion](shared.UnionString(text)),
 		EncodingFormat: openai.F(openai.EmbeddingNewParamsEncodingFormatFloat),
 		Dimensions:     openai.F(int64(1024)),

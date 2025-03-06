@@ -21,18 +21,26 @@ cover:
 lint:
 	golangci-lint run
 
+models/Llama-3.2-3B-Instruct-Q8_0.gguf:
+	mkdir -p models
+	cd models && curl -sLO https://assets.maragu.dev/llm/Llama-3.2-3B-Instruct-Q8_0.gguf
+
 models/mxbai-embed-large-v1-f16.llamafile:
 	mkdir -p models
-	curl -sLO https://assets.maragu.dev/llm/mxbai-embed-large-v1-f16.llamafile
+	cd models && curl -sLO https://assets.maragu.dev/llm/mxbai-embed-large-v1-f16.llamafile
 	chmod a+x models/mxbai-embed-large-v1-f16.llamafile
 
 .PHONY: start
 start: build-css
 	go run -tags sqlite_fts5 ./cmd/app
 
+.PHONY: start-completions
+start-completions: models/Llama-3.2-3B-Instruct-Q8_0.gguf
+	llama-server -m ./models/Llama-3.2-3B-Instruct-Q8_0.gguf --port 8081
+
 .PHONY: start-embeddings
 start-embeddings: models/mxbai-embed-large-v1-f16.llamafile
-	./models/mxbai-embed-large-v1-f16.llamafile --server --listen localhost:8082 --v2
+	./models/mxbai-embed-large-v1-f16.llamafile --server --v2 --listen localhost:8082
 
 tailwindcss:
 	curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-$(TAILWINDCSS_OS_ARCH)

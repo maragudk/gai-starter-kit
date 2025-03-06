@@ -36,6 +36,11 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      llama32-1b:
+        image: "maragudk/llama-3.2-1b-instruct-q4_k_m"
+        ports:
+          - "8081:8080"
+
       mxbai-embed-large-v1:
         image: "maragudk/mxbai-embed-large-v1-f16"
         ports:

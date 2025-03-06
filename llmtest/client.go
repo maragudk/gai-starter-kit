@@ -6,14 +6,31 @@ import (
 	"testing"
 
 	"app/llm"
+
+	"maragu.dev/env"
 )
 
-func NewClient(t *testing.T) *llm.Client {
+func NewCompleter(t *testing.T) *llm.Client {
 	t.Helper()
+
+	_ = env.Load("../.env.test.local")
+
+	return llm.NewClient(llm.NewClientOptions{
+		BaseURL: "http://localhost:8081/v1",
+		Log:     slog.New(slog.NewTextHandler(&testWriter{t: t}, nil)),
+		Key:     env.GetStringOrDefault("OPENAI_KEY", ""),
+	})
+}
+
+func NewEmbedder(t *testing.T) *llm.Client {
+	t.Helper()
+
+	_ = env.Load("../.env.test.local")
 
 	return llm.NewClient(llm.NewClientOptions{
 		BaseURL: "http://localhost:8082/v1",
 		Log:     slog.New(slog.NewTextHandler(&testWriter{t: t}, nil)),
+		Key:     env.GetStringOrDefault("OPENAI_KEY", ""),
 	})
 }
 
