@@ -35,6 +35,7 @@ func NewServer(opts NewServerOptions) *Server {
 	mux := chi.NewMux()
 
 	return &Server{
+		db:  opts.DB,
 		log: opts.Log,
 		mux: mux,
 		server: &http.Server{
