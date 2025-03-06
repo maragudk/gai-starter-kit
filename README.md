@@ -1,4 +1,4 @@
-# gai-starter-kit
+# Get started with LLMs, FTS and vector search, RAG, and more, in Go!
 
 [![GoDoc](https://pkg.go.dev/badge/github.com/maragudk/gai-starter-kit)](https://pkg.go.dev/github.com/maragudk/gai-starter-kit)
 [![Go](https://github.com/maragudk/gai-starter-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/maragudk/gai-starter-kit/actions/workflows/ci.yml)
