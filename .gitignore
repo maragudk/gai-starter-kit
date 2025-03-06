@@ -1,5 +1,7 @@
+/.env.*.local
 /app.db*
 /cover.out
+/go.work*
 /llama.log
 /models/
 /public/styles/app.css

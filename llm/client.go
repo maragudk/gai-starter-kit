@@ -7,8 +7,8 @@ import (
 )
 
 type Client struct {
-	log *slog.Logger
-	oc  *gai.OpenAIClient
+	client *gai.OpenAIClient
+	log    *slog.Logger
 }
 
 type NewClientOptions struct {
@@ -29,7 +29,7 @@ func NewClient(opts NewClientOptions) *Client {
 	})
 
 	return &Client{
-		log: opts.Log,
-		oc:  oc,
+		client: oc,
+		log:    opts.Log,
 	}
 }
