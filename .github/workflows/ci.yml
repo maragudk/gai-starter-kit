@@ -35,6 +35,12 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
+    services:
+      mxbai-embed-large-v1:
+        image: "maragudk/mxbai-embed-large-v1-f16"
+        ports:
+          - "8082:8080"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
