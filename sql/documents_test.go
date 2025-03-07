@@ -2,6 +2,7 @@ package sql_test
 
 import (
 	"testing"
+	"time"
 
 	"maragu.dev/is"
 
@@ -63,43 +64,27 @@ func TestDocuments_CRUD(t *testing.T) {
 	t.Run("list multiple documents", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 
-		// Create three documents
-		doc1 := model.Document{Content: "First document"}
-		doc2 := model.Document{Content: "Second document"}
-		doc3 := model.Document{Content: "Third document"}
+		// Insert documents with unique content
+		doc1 := model.Document{Content: "Document 1"}
+		doc2 := model.Document{Content: "Document 2"}
+		doc3 := model.Document{Content: "Document 3"}
 
-		created1, err := db.CreateDocument(t.Context(), doc1)
+		_, err := db.CreateDocument(t.Context(), doc1)
 		is.NotError(t, err)
-		created2, err := db.CreateDocument(t.Context(), doc2)
+		time.Sleep(time.Millisecond)
+		_, err = db.CreateDocument(t.Context(), doc2)
 		is.NotError(t, err)
-		created3, err := db.CreateDocument(t.Context(), doc3)
+		time.Sleep(time.Millisecond)
+		_, err = db.CreateDocument(t.Context(), doc3)
 		is.NotError(t, err)
 
-		// List and verify we get all docs back
+		// List documents
 		docs, err := db.ListDocuments(t.Context())
 		is.NotError(t, err)
 		is.Equal(t, 3, len(docs))
-			
-		// Verify all documents are in the results
-		foundDoc1 := false
-		foundDoc2 := false
-		foundDoc3 := false
-		
-		for _, doc := range docs {
-			if doc.ID == created1.ID {
-				foundDoc1 = true
-				is.Equal(t, doc1.Content, doc.Content)
-			} else if doc.ID == created2.ID {
-				foundDoc2 = true
-				is.Equal(t, doc2.Content, doc.Content)
-			} else if doc.ID == created3.ID {
-				foundDoc3 = true
-				is.Equal(t, doc3.Content, doc.Content)
-			}
-		}
-		
-		is.True(t, foundDoc1)
-		is.True(t, foundDoc2)
-		is.True(t, foundDoc3)
+
+		is.Equal(t, "Document 3", docs[0].Content)
+		is.Equal(t, "Document 2", docs[1].Content)
+		is.Equal(t, "Document 1", docs[2].Content)
 	})
 }
