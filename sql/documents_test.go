@@ -44,19 +44,12 @@ func TestDocuments_CRUD(t *testing.T) {
 		// Skip the update timestamp check in tests as it depends on database triggers
 		is.Equal(t, updated.Content, updatedDoc.Content)
 
-		// List
+		// List - we know there's only one document in the database
 		docs, err := db.ListDocuments(t.Context())
 		is.NotError(t, err)
-		is.True(t, len(docs) > 0)
-		found := false
-		for _, d := range docs {
-			if d.ID == created.ID {
-				found = true
-				is.Equal(t, updated.Content, d.Content)
-				break
-			}
-		}
-		is.True(t, found)
+		is.Equal(t, 1, len(docs))
+		is.Equal(t, created.ID, docs[0].ID)
+		is.Equal(t, updated.Content, docs[0].Content)
 
 		// Delete
 		err = db.DeleteDocument(t.Context(), created.ID)
@@ -67,10 +60,10 @@ func TestDocuments_CRUD(t *testing.T) {
 		is.True(t, err != nil)
 	})
 
-	t.Run("list documents returns documents", func(t *testing.T) {
+	t.Run("list multiple documents", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 
-		// Create several documents
+		// Create three documents
 		doc1 := model.Document{Content: "First document"}
 		doc2 := model.Document{Content: "Second document"}
 		doc3 := model.Document{Content: "Third document"}
@@ -82,27 +75,31 @@ func TestDocuments_CRUD(t *testing.T) {
 		created3, err := db.CreateDocument(t.Context(), doc3)
 		is.NotError(t, err)
 
-		// List and verify docs exist
+		// List and verify we get all docs back
 		docs, err := db.ListDocuments(t.Context())
 		is.NotError(t, err)
-		is.True(t, len(docs) >= 3)
-
+		is.Equal(t, 3, len(docs))
+			
 		// Verify all documents are in the results
-		found1 := false
-		found2 := false
-		found3 := false
+		foundDoc1 := false
+		foundDoc2 := false
+		foundDoc3 := false
+		
 		for _, doc := range docs {
 			if doc.ID == created1.ID {
-				found1 = true
+				foundDoc1 = true
+				is.Equal(t, doc1.Content, doc.Content)
 			} else if doc.ID == created2.ID {
-				found2 = true
+				foundDoc2 = true
+				is.Equal(t, doc2.Content, doc.Content)
 			} else if doc.ID == created3.ID {
-				found3 = true
+				foundDoc3 = true
+				is.Equal(t, doc3.Content, doc.Content)
 			}
 		}
-
-		is.True(t, found1)
-		is.True(t, found2)
-		is.True(t, found3)
+		
+		is.True(t, foundDoc1)
+		is.True(t, foundDoc2)
+		is.True(t, foundDoc3)
 	})
 }

@@ -1,13 +1,14 @@
 package http
 
 import (
-	"app/model"
 	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"maragu.dev/errors"
 	"maragu.dev/httph"
+
+	"app/model"
 )
 
 type documentCRUDer interface {
@@ -33,6 +34,11 @@ type CreateDocumentResponse struct {
 	Document model.Document
 }
 
+// StatusCode implements the statusCodeGiver interface.
+func (r *CreateDocumentResponse) StatusCode() int {
+	return http.StatusCreated
+}
+
 type ListDocumentsResponse struct {
 	Documents []model.Document
 }
@@ -45,7 +51,6 @@ type UpdateDocumentRequest struct {
 	Content string
 }
 
-// Validate implements the validator interface.
 func (r UpdateDocumentRequest) Validate() error {
 	if r.Content == "" {
 		return errors.New("content is required")
@@ -59,6 +64,11 @@ type UpdateDocumentResponse struct {
 
 type DeleteDocumentResponse struct {
 	Success bool
+}
+
+// StatusCode implements the statusCodeGiver interface.
+func (r *DeleteDocumentResponse) StatusCode() int {
+	return http.StatusNoContent
 }
 
 func Documents(mux chi.Router, db documentCRUDer) {
@@ -144,8 +154,7 @@ func Documents(mux chi.Router, db documentCRUDer) {
 			return nil, errors.Wrap(err, "error deleting document")
 		}
 
-		return &DeleteDocumentResponse{
-			Success: true,
-		}, nil
+		// Return empty response with 204 No Content status code
+		return &DeleteDocumentResponse{}, nil
 	}))
 }

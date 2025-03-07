@@ -1,16 +1,18 @@
 package http_test
 
 import (
-	"app/http"
-	"app/model"
-	"app/sqltest"
 	"bytes"
 	"encoding/json"
+	stdhttp "net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
 	"maragu.dev/is"
+
+	"app/http"
+	"app/model"
+	"app/sqltest"
 )
 
 func TestDocuments(t *testing.T) {
@@ -31,7 +33,7 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 200, w.Code)
+		is.Equal(t, stdhttp.StatusCreated, w.Code)
 
 		var resp http.CreateDocumentResponse
 		err = json.Unmarshal(w.Body.Bytes(), &resp)
@@ -58,23 +60,14 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 200, w.Code)
+		is.Equal(t, stdhttp.StatusOK, w.Code)
 
 		var resp http.ListDocumentsResponse
 		err = json.Unmarshal(w.Body.Bytes(), &resp)
 		is.NotError(t, err)
-		is.True(t, len(resp.Documents) > 0)
-		
-		// Find our document in the list
-		found := false
-		for _, d := range resp.Documents {
-			if d.ID == createdDoc.ID {
-				found = true
-				is.Equal(t, createdDoc.Content, d.Content)
-				break
-			}
-		}
-		is.True(t, found)
+		is.Equal(t, 1, len(resp.Documents))
+		is.Equal(t, createdDoc.ID, resp.Documents[0].ID)
+		is.Equal(t, createdDoc.Content, resp.Documents[0].Content)
 	})
 
 	t.Run("get document", func(t *testing.T) {
@@ -93,7 +86,7 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 200, w.Code)
+		is.Equal(t, stdhttp.StatusOK, w.Code)
 
 		var resp http.GetDocumentResponse
 		err = json.Unmarshal(w.Body.Bytes(), &resp)
@@ -125,7 +118,7 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 200, w.Code)
+		is.Equal(t, stdhttp.StatusOK, w.Code)
 
 		var resp http.UpdateDocumentResponse
 		err = json.Unmarshal(w.Body.Bytes(), &resp)
@@ -151,12 +144,10 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 200, w.Code)
+		is.Equal(t, stdhttp.StatusNoContent, w.Code)
 
-		var resp http.DeleteDocumentResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.Equal(t, true, resp.Success)
+		// With a 204 No Content, the framework may still serialize the response
+		// but the client should ignore the body
 
 		// Verify it's deleted
 		_, err = db.GetDocument(t.Context(), createdDoc.ID)
@@ -174,6 +165,6 @@ func TestDocuments(t *testing.T) {
 
 		mux.ServeHTTP(w, req)
 
-		is.Equal(t, 404, w.Code) // Should return 404 for route not found
+		is.Equal(t, stdhttp.StatusNotFound, w.Code) // Should return 404 for route not found
 	})
 }
