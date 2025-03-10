@@ -6,7 +6,7 @@ require (
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/openai/openai-go v0.1.0-alpha.61
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.12.0
 	maragu.dev/env v0.2.0
 	maragu.dev/errors v0.3.0
 	maragu.dev/gai v0.0.0-20250303133245-06781fba4d16
