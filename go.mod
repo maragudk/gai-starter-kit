@@ -12,7 +12,7 @@ require (
 	maragu.dev/gai v0.0.0-20250303133245-06781fba4d16
 	maragu.dev/httph v0.3.5
 	maragu.dev/is v0.2.0
-	maragu.dev/sqlh v0.1.1-0.20250305133106-e757531b1937
+	maragu.dev/sqlh v0.2.0
 )
 
 require (
