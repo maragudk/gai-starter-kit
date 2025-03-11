@@ -36,13 +36,6 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      llama3-1b:
-        image: "ghcr.io/maragudk/llama-server"
-        ports:
-          - "8081:8080"
-        env:
-          MODEL: "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-
       mxbai-embed-large-v1:
         image: "maragudk/mxbai-embed-large-v1-f16"
         ports:
@@ -68,6 +61,14 @@ jobs:
     name: Evaluate
     runs-on: ubuntu-latest
     if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+
+    services:
+      llama3-1b:
+        image: "ghcr.io/maragudk/llama-server"
+        ports:
+          - "8081:8080"
+        env:
+          MODEL: "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
 
     steps:
       - name: Checkout
