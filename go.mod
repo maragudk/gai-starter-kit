@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/maragudk/goqite v0.2.3 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect

@@ -21,6 +21,10 @@ cover:
 lint:
 	golangci-lint run
 
+.PHONY: evaluate
+evaluate:
+	go test -tags sqlite_fts5 -shuffle on -run TestEval ./...
+
 models/Llama-3.2-3B-Instruct-Q8_0.gguf:
 	mkdir -p models
 	cd models && curl -sLO https://assets.maragu.dev/llm/Llama-3.2-3B-Instruct-Q8_0.gguf

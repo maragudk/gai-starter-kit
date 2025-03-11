@@ -1,6 +1,7 @@
 /.env.*.local
 /app.db*
 /cover.out
+/evals.jsonl
 /go.work*
 /llama.log
 /models/
