@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204-arm
 
     steps:
       - name: Setup QEMU
