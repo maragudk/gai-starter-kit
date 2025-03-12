@@ -29,6 +29,7 @@ func (c *Client) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResp
 
 var _ gai.Embedder[int] = (*Client)(nil)
 
+// EmbedString as a convenience wrapper around [Client.Embed].
 func (c *Client) EmbedString(ctx context.Context, s string) ([]int, error) {
 	res, err := c.Embed(ctx, gai.EmbedRequest{
 		Input: strings.NewReader(s),
