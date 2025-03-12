@@ -1,11 +1,14 @@
 package sql_test
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"maragu.dev/is"
 
+	"app/aitest"
 	"app/model"
 	"app/sqltest"
 )
@@ -13,13 +16,16 @@ import (
 func TestDocuments_CRUD(t *testing.T) {
 	t.Run("create, read, update, delete", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		c := aitest.NewClient(t)
 
 		// Create
 		doc := model.Document{
 			Content: "Test document content",
 		}
 
-		created, err := db.CreateDocument(t.Context(), doc, nil)
+		chunks := stringToChunks(t, c.EmbedString, doc.Content)
+
+		created, err := db.CreateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
 		is.True(t, created.ID != "")
 		is.True(t, !created.Created.T.IsZero())
@@ -35,22 +41,22 @@ func TestDocuments_CRUD(t *testing.T) {
 		is.Equal(t, created.Content, retrieved.Content)
 
 		// Update
-		updated := model.Document{
-			Content: "Updated content",
-		}
-		updatedDoc, err := db.UpdateDocument(t.Context(), created.ID, updated, nil)
-		is.NotError(t, err)
-		is.Equal(t, created.ID, updatedDoc.ID)
-		is.Equal(t, created.Created, updatedDoc.Created)
-		// Skip the update timestamp check in tests as it depends on database triggers
-		is.Equal(t, updated.Content, updatedDoc.Content)
+		doc.ID = created.ID
+		doc.Content = "Updated content"
 
-		// List - we know there's only one document in the database
+		chunks = stringToChunks(t, c.EmbedString, doc.Content)
+
+		updated, err := db.UpdateDocument(t.Context(), doc, chunks)
+		is.NotError(t, err)
+		is.Equal(t, created.ID, updated.ID)
+		is.Equal(t, created.Created, updated.Created)
+		is.Equal(t, doc.Content, updated.Content)
+
+		// List
 		docs, err := db.ListDocuments(t.Context())
 		is.NotError(t, err)
 		is.Equal(t, 1, len(docs))
 		is.Equal(t, created.ID, docs[0].ID)
-		is.Equal(t, updated.Content, docs[0].Content)
 
 		// Delete
 		err = db.DeleteDocument(t.Context(), created.ID)
@@ -58,7 +64,7 @@ func TestDocuments_CRUD(t *testing.T) {
 
 		// Verify deletion
 		_, err = db.GetDocument(t.Context(), created.ID)
-		is.True(t, err != nil)
+		is.Error(t, model.ErrorDocumentNotFound, err)
 	})
 
 	t.Run("list multiple documents", func(t *testing.T) {
@@ -87,4 +93,27 @@ func TestDocuments_CRUD(t *testing.T) {
 		is.Equal(t, "Document 2", docs[1].Content)
 		is.Equal(t, "Document 1", docs[2].Content)
 	})
+}
+
+// stringToChunks based on whitespace.
+func stringToChunks(t *testing.T, embedder func(context.Context, string) ([]byte, error), content string) []model.Chunk {
+	t.Helper()
+
+	parts := strings.Split(content, " ")
+	var chunks []model.Chunk
+	for i, part := range parts {
+		chunks = append(chunks, model.Chunk{
+			Index:     i,
+			Content:   part,
+			Embedding: must(embedder(t.Context(), part)),
+		})
+	}
+	return chunks
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

@@ -52,7 +52,7 @@ func (d *Database) saveChunks(ctx context.Context, tx *sql.Tx, docID model.ID, c
 
 		query = `
 			insert into chunk_embeddings (chunkID, embedding)
-			values (?, ?)
+			values (?, vec_quantize_binary(?))
 		`
 		if err := tx.Exec(ctx, query, c.ID, c.Embedding); err != nil {
 			return errors.Wrap(err, "error creating chunk embedding")
@@ -95,13 +95,13 @@ func (d *Database) GetDocument(ctx context.Context, id model.ID) (model.Document
 	return doc, nil
 }
 
-func (d *Database) UpdateDocument(ctx context.Context, id model.ID, doc model.Document, chunks []model.Chunk) (model.Document, error) {
+func (d *Database) UpdateDocument(ctx context.Context, doc model.Document, chunks []model.Chunk) (model.Document, error) {
 	err := d.H.InTransaction(ctx, func(tx *sql.Tx) error {
 		var exists bool
 		query := `
 			select exists(select 1 from documents where id = ?)
 		`
-		if err := tx.Get(ctx, &exists, query, id); err != nil {
+		if err := tx.Get(ctx, &exists, query, doc.ID); err != nil {
 			return errors.Wrap(err, "error checking if document exists")
 		}
 
@@ -116,7 +116,7 @@ func (d *Database) UpdateDocument(ctx context.Context, id model.ID, doc model.Do
 			returning *
 		`
 
-		if err := tx.Get(ctx, &doc, query, doc.Content, id); err != nil {
+		if err := tx.Get(ctx, &doc, query, doc.Content, doc.ID); err != nil {
 			return errors.Wrap(err, "error updating document")
 		}
 
