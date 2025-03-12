@@ -12,10 +12,10 @@ import (
 )
 
 type documentCRUDer interface {
-	CreateDocument(ctx context.Context, d model.Document) (model.Document, error)
+	CreateDocument(ctx context.Context, d model.Document, chunks []model.Chunk) (model.Document, error)
 	ListDocuments(ctx context.Context) ([]model.Document, error)
 	GetDocument(ctx context.Context, id model.ID) (model.Document, error)
-	UpdateDocument(ctx context.Context, id model.ID, d model.Document) (model.Document, error)
+	UpdateDocument(ctx context.Context, id model.ID, d model.Document, chunks []model.Chunk) (model.Document, error)
 	DeleteDocument(ctx context.Context, id model.ID) error
 }
 
@@ -77,7 +77,7 @@ func Documents(mux chi.Router, db documentCRUDer) {
 			Content: req.Content,
 		}
 
-		created, err := db.CreateDocument(r.Context(), doc)
+		created, err := db.CreateDocument(r.Context(), doc, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating document")
 		}
@@ -124,7 +124,7 @@ func Documents(mux chi.Router, db documentCRUDer) {
 			Content: req.Content,
 		}
 
-		updated, err := db.UpdateDocument(r.Context(), id, doc)
+		updated, err := db.UpdateDocument(r.Context(), id, doc, nil)
 		if err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
 				return nil, httph.HTTPError{

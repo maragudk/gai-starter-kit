@@ -51,7 +51,7 @@ func TestDocuments(t *testing.T) {
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
-		createdDoc, err := db.CreateDocument(t.Context(), doc)
+		createdDoc, err := db.CreateDocument(t.Context(), doc, nil)
 		is.NotError(t, err)
 
 		// Now list documents
@@ -77,7 +77,7 @@ func TestDocuments(t *testing.T) {
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
-		createdDoc, err := db.CreateDocument(t.Context(), doc)
+		createdDoc, err := db.CreateDocument(t.Context(), doc, nil)
 		is.NotError(t, err)
 
 		// Now get the document
@@ -102,7 +102,7 @@ func TestDocuments(t *testing.T) {
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
-		createdDoc, err := db.CreateDocument(t.Context(), doc)
+		createdDoc, err := db.CreateDocument(t.Context(), doc, nil)
 		is.NotError(t, err)
 
 		// Now update the document
@@ -135,7 +135,7 @@ func TestDocuments(t *testing.T) {
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
-		createdDoc, err := db.CreateDocument(t.Context(), doc)
+		createdDoc, err := db.CreateDocument(t.Context(), doc, nil)
 		is.NotError(t, err)
 
 		// Now delete the document

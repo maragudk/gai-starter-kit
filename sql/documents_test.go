@@ -19,7 +19,7 @@ func TestDocuments_CRUD(t *testing.T) {
 			Content: "Test document content",
 		}
 
-		created, err := db.CreateDocument(t.Context(), doc)
+		created, err := db.CreateDocument(t.Context(), doc, nil)
 		is.NotError(t, err)
 		is.True(t, created.ID != "")
 		is.True(t, !created.Created.T.IsZero())
@@ -38,7 +38,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		updated := model.Document{
 			Content: "Updated content",
 		}
-		updatedDoc, err := db.UpdateDocument(t.Context(), created.ID, updated)
+		updatedDoc, err := db.UpdateDocument(t.Context(), created.ID, updated, nil)
 		is.NotError(t, err)
 		is.Equal(t, created.ID, updatedDoc.ID)
 		is.Equal(t, created.Created, updatedDoc.Created)
@@ -69,13 +69,13 @@ func TestDocuments_CRUD(t *testing.T) {
 		doc2 := model.Document{Content: "Document 2"}
 		doc3 := model.Document{Content: "Document 3"}
 
-		_, err := db.CreateDocument(t.Context(), doc1)
+		_, err := db.CreateDocument(t.Context(), doc1, nil)
 		is.NotError(t, err)
 		time.Sleep(time.Millisecond)
-		_, err = db.CreateDocument(t.Context(), doc2)
+		_, err = db.CreateDocument(t.Context(), doc2, nil)
 		is.NotError(t, err)
 		time.Sleep(time.Millisecond)
-		_, err = db.CreateDocument(t.Context(), doc3)
+		_, err = db.CreateDocument(t.Context(), doc3, nil)
 		is.NotError(t, err)
 
 		// List documents
