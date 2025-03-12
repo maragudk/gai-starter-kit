@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"maragu.dev/gai"
+
+	"app/model"
 )
 
 // Embed to a binary vector.
@@ -30,7 +32,7 @@ func (c *Client) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResp
 var _ gai.Embedder[int] = (*Client)(nil)
 
 // EmbedString as a convenience wrapper around [Client.Embed].
-func (c *Client) EmbedString(ctx context.Context, s string) ([]int, error) {
+func (c *Client) EmbedString(ctx context.Context, s string) ([]byte, error) {
 	res, err := c.Embed(ctx, gai.EmbedRequest{
 		Input: strings.NewReader(s),
 	})
@@ -38,5 +40,5 @@ func (c *Client) EmbedString(ctx context.Context, s string) ([]int, error) {
 		return nil, err
 	}
 
-	return res.Embedding, nil
+	return model.QuantizeEmbedding(res.Embedding), nil
 }
