@@ -26,20 +26,20 @@ create index chunks_documentID_index_index on chunks (documentID, "index");
 
 -- create a virtual table for full-text search using the porter tokenizer
 create virtual table chunks_fts using fts5(
-  content, tokenize = porter, content = 'chunks', content_rowid = 'id'
+  content, tokenize = porter, content = 'chunks'
 );
 
 create trigger chunks_after_insert after insert on chunks begin
-  insert into chunks_fts (id, content) values (new.id, new.content);
+  insert into chunks_fts (rowid, content) values (new.rowid, new.content);
 end;
 
 create trigger chunks_fts_after_update after update on chunks begin
-  insert into chunks_fts (chunks_fts, id, content) values('delete', old.id, old.content);
-  insert into chunks_fts (id, content) values (new.id, new.content);
+  insert into chunks_fts (chunks_fts, rowid, content) values('delete', old.rowid, old.content);
+  insert into chunks_fts (rowid, content) values (new.rowid, new.content);
 end;
 
 create trigger chunks_fts_after_delete after delete on chunks begin
-  insert into chunks_fts (chunks_fts, rowid, content) values('delete', old.id, old.content);
+  insert into chunks_fts (chunks_fts, rowid, content) values('delete', old.rowid, old.content);
 end;
 
 create virtual table chunk_embeddings using vec0(
