@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/pkoukk/tiktoken-go"
+	tiktokenloader "github.com/pkoukk/tiktoken-go-loader"
 	"maragu.dev/is"
 
 	"app/model"
@@ -67,15 +68,16 @@ func TestCreateChunks(t *testing.T) {
 func TestCreateLargeChunks(t *testing.T) {
 	// Extremely long text
 	content := strings.Repeat("This is a very long sentence with many words. ", 100)
-	
+
 	chunks := model.CreateChunks(content)
-	
-	// Check that we have valid chunks
+
+	// Set the offline loader and check that we have valid chunks
+	tiktoken.SetBpeLoader(tiktokenloader.NewOfflineLoader())
 	enc, err := tiktoken.GetEncoding("cl100k_base")
 	if err != nil {
 		t.Fatalf("Failed to get encoding: %v", err)
 	}
-	
+
 	// Verify chunk sizes
 	for i, chunk := range chunks {
 		tokens := enc.Encode(chunk, nil, nil)

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkoukk/tiktoken-go"
+	tiktokenloader "github.com/pkoukk/tiktoken-go-loader" // Import for offline loading
 )
 
 const (
@@ -38,6 +39,9 @@ func CreateDocumentChunks(ctx context.Context, content string, embedder embedder
 // CreateChunks splits text into chunks based on paragraphs and token limits.
 // It uses a simplified approach that prioritizes staying under token limits.
 func CreateChunks(content string) []string {
+	// Set the BPE loader to use the embedded files before getting the encoding
+	tiktoken.SetBpeLoader(tiktokenloader.NewOfflineLoader())
+
 	// Get encoder
 	enc, err := tiktoken.GetEncoding("cl100k_base")
 	if err != nil {
@@ -60,7 +64,7 @@ func CreateChunks(content string) []string {
 			nonEmptyParagraphs = append(nonEmptyParagraphs, strings.TrimSpace(p))
 		}
 	}
-	
+
 	if len(nonEmptyParagraphs) == 0 {
 		return []string{}
 	}
@@ -77,7 +81,7 @@ func CreateChunks(content string) []string {
 		paragraphTokenCount := len(paragraphTokens)
 
 		// If paragraph fits in current chunk, add it
-		if currentTokenCount + paragraphTokenCount <= maxTokens {
+		if currentTokenCount+paragraphTokenCount <= maxTokens {
 			if currentChunk != "" {
 				currentChunk += "\n\n"
 			}
@@ -85,14 +89,14 @@ func CreateChunks(content string) []string {
 			currentTokenCount += paragraphTokenCount
 		} else if paragraphTokenCount > maxTokens {
 			// Paragraph is too large, need to split it
-			
+
 			// First, save the current chunk if it exists
 			if currentChunk != "" {
 				chunks = append(chunks, currentChunk)
 				currentChunk = ""
 				currentTokenCount = 0
 			}
-			
+
 			// Split large paragraph into sentences
 			sentences := strings.Split(paragraph, ". ")
 			for i, sentence := range sentences {
@@ -100,17 +104,17 @@ func CreateChunks(content string) []string {
 				if sentence == "" {
 					continue
 				}
-				
+
 				// Add period back if needed
 				if !strings.HasSuffix(sentence, ".") && i < len(sentences)-1 {
 					sentence += "."
 				}
-				
+
 				sentenceTokens := enc.Encode(sentence, nil, nil)
 				sentenceTokenCount := len(sentenceTokens)
-				
+
 				// Check if sentence fits in current chunk
-				if currentTokenCount + sentenceTokenCount <= maxTokens {
+				if currentTokenCount+sentenceTokenCount <= maxTokens {
 					if currentChunk != "" {
 						currentChunk += " "
 					}
@@ -123,13 +127,13 @@ func CreateChunks(content string) []string {
 						currentChunk = ""
 						currentTokenCount = 0
 					}
-					
+
 					words := strings.Split(sentence, " ")
 					for _, word := range words {
 						wordTokens := enc.Encode(word, nil, nil)
 						wordTokenCount := len(wordTokens)
-						
-						if currentTokenCount + wordTokenCount <= maxTokens {
+
+						if currentTokenCount+wordTokenCount <= maxTokens {
 							if currentChunk != "" {
 								currentChunk += " "
 							}
@@ -158,17 +162,17 @@ func CreateChunks(content string) []string {
 			currentTokenCount = paragraphTokenCount
 		}
 	}
-	
+
 	// Add the last chunk if there's anything left
 	if currentChunk != "" {
 		chunks = append(chunks, currentChunk)
 	}
-	
+
 	// Create overlapping chunks if we have multiple chunks
 	if len(chunks) > 1 {
 		return addOverlap(chunks, enc)
 	}
-	
+
 	return chunks
 }
 
@@ -177,10 +181,10 @@ func addOverlap(chunks []string, enc *tiktoken.Tiktoken) []string {
 	if len(chunks) <= 1 {
 		return chunks
 	}
-	
+
 	overlapTokens := OverlapSize
 	result := make([]string, 0, len(chunks))
-	
+
 	for i := 0; i < len(chunks); i++ {
 		if i == 0 {
 			// First chunk doesn't need leading overlap
@@ -189,17 +193,17 @@ func addOverlap(chunks []string, enc *tiktoken.Tiktoken) []string {
 			// Add overlap from previous chunk
 			prevChunk := chunks[i-1]
 			currentChunk := chunks[i]
-			
+
 			// Get end of previous chunk for overlap
 			overlapText := getLastNTokens(prevChunk, enc, overlapTokens)
 			if overlapText != "" && !strings.Contains(currentChunk, overlapText) {
 				currentChunk = overlapText + "\n\n" + currentChunk
 			}
-			
+
 			result = append(result, currentChunk)
 		}
 	}
-	
+
 	return result
 }
 
@@ -209,10 +213,10 @@ func getLastNTokens(text string, enc *tiktoken.Tiktoken, n int) string {
 	if len(tokens) <= n {
 		return text
 	}
-	
+
 	// Get last n tokens
 	relevantTokens := tokens[len(tokens)-n:]
-	
+
 	// Decode back to string
 	return enc.Decode(relevantTokens)
 }
