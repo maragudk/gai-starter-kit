@@ -14,7 +14,7 @@ func (s *Server) setupRoutes() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
-			Documents(r, s.db)
+			Documents(r, s.db, s.ai)
 		})
 	})
 }

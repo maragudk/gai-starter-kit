@@ -12,11 +12,15 @@ import (
 )
 
 type documentCRUDer interface {
-	CreateDocument(ctx context.Context, d model.Document) (model.Document, error)
+	CreateDocument(ctx context.Context, d model.Document, chunks []model.Chunk) (model.Document, error)
 	ListDocuments(ctx context.Context) ([]model.Document, error)
 	GetDocument(ctx context.Context, id model.ID) (model.Document, error)
-	UpdateDocument(ctx context.Context, id model.ID, d model.Document) (model.Document, error)
+	UpdateDocument(ctx context.Context, d model.Document, chunks []model.Chunk) (model.Document, error)
 	DeleteDocument(ctx context.Context, id model.ID) error
+}
+
+type embedder interface {
+	EmbedString(ctx context.Context, s string) ([]byte, error)
 }
 
 type CreateDocumentRequest struct {
@@ -71,13 +75,18 @@ func (r *DeleteDocumentResponse) StatusCode() int {
 	return http.StatusNoContent
 }
 
-func Documents(mux chi.Router, db documentCRUDer) {
+func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 	mux.Post("/documents", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, req CreateDocumentRequest) (*CreateDocumentResponse, error) {
 		doc := model.Document{
 			Content: req.Content,
 		}
 
-		created, err := db.CreateDocument(r.Context(), doc)
+		chunks, err := model.CreateDocumentChunks(r.Context(), req.Content, ai.EmbedString)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating document chunks")
+		}
+
+		created, err := db.CreateDocument(r.Context(), doc, chunks)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating document")
 		}
@@ -121,10 +130,16 @@ func Documents(mux chi.Router, db documentCRUDer) {
 		id := model.ID(chi.URLParam(r, "id"))
 
 		doc := model.Document{
+			ID:      id,
 			Content: req.Content,
 		}
 
-		updated, err := db.UpdateDocument(r.Context(), id, doc)
+		chunks, err := model.CreateDocumentChunks(r.Context(), req.Content, ai.EmbedString)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating document chunks")
+		}
+
+		doc, err = db.UpdateDocument(r.Context(), doc, chunks)
 		if err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
 				return nil, httph.HTTPError{
@@ -136,15 +151,14 @@ func Documents(mux chi.Router, db documentCRUDer) {
 		}
 
 		return &UpdateDocumentResponse{
-			Document: updated,
+			Document: doc,
 		}, nil
 	}))
 
 	mux.Delete("/documents/{id:[a-z0-9_]+}", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, _ any) (*DeleteDocumentResponse, error) {
 		id := model.ID(chi.URLParam(r, "id"))
 
-		err := db.DeleteDocument(r.Context(), id)
-		if err != nil {
+		if err := db.DeleteDocument(r.Context(), id); err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
 				return nil, httph.HTTPError{
 					Code: http.StatusNotFound,

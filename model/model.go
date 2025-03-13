@@ -14,7 +14,8 @@ type Chunk struct {
 	ID         ID
 	Created    Time
 	Updated    Time
-	DocumentID ID
+	DocumentID ID `db:"documentID"`
 	Index      int
 	Content    string
+	Embedding  []byte
 }

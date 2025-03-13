@@ -8,20 +8,58 @@ import (
 	"maragu.dev/sqlh/sql"
 )
 
-func (d *Database) CreateDocument(ctx context.Context, doc model.Document) (model.Document, error) {
-	query := `
-		insert into documents (content)
-		values (?)
-		returning id, created, updated, content
-	`
+// CreateDocument and add the chunks as well as the chunk embeddings.
+func (d *Database) CreateDocument(ctx context.Context, doc model.Document, chunks []model.Chunk) (model.Document, error) {
+	err := d.H.InTransaction(ctx, func(tx *sql.Tx) error {
+		query := `
+			insert into documents (content)
+			values (?)
+			returning *
+		`
+		err := tx.Get(ctx, &doc, query, doc.Content)
+		if err != nil {
+			return errors.Wrap(err, "error creating document")
+		}
 
-	var result model.Document
-	err := d.H.Get(ctx, &result, query, doc.Content)
-	if err != nil {
-		return model.Document{}, errors.Wrap(err, "error creating document")
+		if err := d.saveChunks(ctx, tx, doc.ID, chunks); err != nil {
+			return errors.Wrap(err, "error saving chunks")
+		}
+
+		return nil
+	})
+
+	return doc, err
+}
+
+// saveChunks by deleting previous chunks and inserting new ones.
+func (d *Database) saveChunks(ctx context.Context, tx *sql.Tx, docID model.ID, chunks []model.Chunk) error {
+	query := `
+		delete from chunks where documentID = ?
+	`
+	if err := tx.Exec(ctx, query, docID); err != nil {
+		return errors.Wrap(err, "error deleting previous chunks")
 	}
 
-	return result, nil
+	for _, c := range chunks {
+		query := `
+			insert into chunks (documentID, "index", content)
+			values (?, ?, ?)
+			returning *
+		`
+		if err := tx.Get(ctx, &c, query, docID, c.Index, c.Content); err != nil {
+			return errors.Wrap(err, "error creating chunk")
+		}
+
+		query = `
+			insert into chunk_embeddings (chunkID, embedding)
+			values (?, vec_quantize_binary(?))
+		`
+		if err := tx.Exec(ctx, query, c.ID, c.Embedding); err != nil {
+			return errors.Wrap(err, "error creating chunk embedding")
+		}
+	}
+
+	return nil
 }
 
 func (d *Database) ListDocuments(ctx context.Context) ([]model.Document, error) {
@@ -31,13 +69,12 @@ func (d *Database) ListDocuments(ctx context.Context) ([]model.Document, error) 
 		order by created desc
 	`
 
-	var results []model.Document
-	err := d.H.Select(ctx, &results, query)
-	if err != nil {
+	var docs []model.Document
+	if err := d.H.Select(ctx, &docs, query); err != nil {
 		return nil, errors.Wrap(err, "error listing documents")
 	}
 
-	return results, nil
+	return docs, nil
 }
 
 func (d *Database) GetDocument(ctx context.Context, id model.ID) (model.Document, error) {
@@ -47,28 +84,24 @@ func (d *Database) GetDocument(ctx context.Context, id model.ID) (model.Document
 		where id = ?
 	`
 
-	var result model.Document
-	err := d.H.Get(ctx, &result, query, id)
-	if err != nil {
+	var doc model.Document
+	if err := d.H.Get(ctx, &doc, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.Document{}, model.ErrorDocumentNotFound
+			return doc, model.ErrorDocumentNotFound
 		}
-		return model.Document{}, errors.Wrap(err, "error getting document")
+		return doc, errors.Wrap(err, "error getting document")
 	}
 
-	return result, nil
+	return doc, nil
 }
 
-func (d *Database) UpdateDocument(ctx context.Context, id model.ID, doc model.Document) (model.Document, error) {
-	var result model.Document
-
+func (d *Database) UpdateDocument(ctx context.Context, doc model.Document, chunks []model.Chunk) (model.Document, error) {
 	err := d.H.InTransaction(ctx, func(tx *sql.Tx) error {
-		// First check if the document exists
 		var exists bool
-		checkQuery := `
+		query := `
 			select exists(select 1 from documents where id = ?)
 		`
-		if err := tx.Get(ctx, &exists, checkQuery, id); err != nil {
+		if err := tx.Get(ctx, &exists, query, doc.ID); err != nil {
 			return errors.Wrap(err, "error checking if document exists")
 		}
 
@@ -76,36 +109,34 @@ func (d *Database) UpdateDocument(ctx context.Context, id model.ID, doc model.Do
 			return model.ErrorDocumentNotFound
 		}
 
-		// Then update the document
-		updateQuery := `
+		query = `
 			update documents
 			set content = ?
 			where id = ?
-			returning id, created, updated, content
+			returning *
 		`
 
-		if err := tx.Get(ctx, &result, updateQuery, doc.Content, id); err != nil {
+		if err := tx.Get(ctx, &doc, query, doc.Content, doc.ID); err != nil {
 			return errors.Wrap(err, "error updating document")
+		}
+
+		if err := d.saveChunks(ctx, tx, doc.ID, chunks); err != nil {
+			return errors.Wrap(err, "error saving chunks")
 		}
 
 		return nil
 	})
 
-	if err != nil {
-		return model.Document{}, err
-	}
-
-	return result, nil
+	return doc, err
 }
 
 func (d *Database) DeleteDocument(ctx context.Context, id model.ID) error {
 	return d.H.InTransaction(ctx, func(tx *sql.Tx) error {
-		// First check if the document exists
 		var exists bool
-		checkQuery := `
+		query := `
 			select exists(select 1 from documents where id = ?)
 		`
-		if err := tx.Get(ctx, &exists, checkQuery, id); err != nil {
+		if err := tx.Get(ctx, &exists, query, id); err != nil {
 			return errors.Wrap(err, "error checking if document exists")
 		}
 
@@ -113,16 +144,32 @@ func (d *Database) DeleteDocument(ctx context.Context, id model.ID) error {
 			return model.ErrorDocumentNotFound
 		}
 
-		// Then delete the document
-		deleteQuery := `
+		query = `
 			delete from documents
 			where id = ?
 		`
-
-		if err := tx.Exec(ctx, deleteQuery, id); err != nil {
+		if err := tx.Exec(ctx, query, id); err != nil {
 			return errors.Wrap(err, "error deleting document")
 		}
 
 		return nil
 	})
+}
+
+func (d *Database) GetDocumentChunks(ctx context.Context, docID model.ID) ([]model.Chunk, error) {
+	query := `
+		select c.id, c.created, c.updated, c.documentID, c."index", c.content, e.embedding
+		from chunks c
+			join chunk_embeddings e on c.id = e.chunkID
+		where c.documentID = ?
+		order by c."index"
+	`
+
+	var chunks []model.Chunk
+	err := d.H.Select(ctx, &chunks, query, docID)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting document chunks with embeddings")
+	}
+
+	return chunks, nil
 }
