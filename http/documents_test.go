@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	stdhttp "net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"maragu.dev/is"
 
+	"app/aitest"
 	"app/http"
 	"app/model"
 	"app/sqltest"
@@ -18,8 +20,9 @@ import (
 func TestDocuments(t *testing.T) {
 	t.Run("create document", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		reqBody := http.CreateDocumentRequest{
 			Content: "Test document",
@@ -46,8 +49,9 @@ func TestDocuments(t *testing.T) {
 
 	t.Run("list documents", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -72,8 +76,9 @@ func TestDocuments(t *testing.T) {
 
 	t.Run("get document", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -97,8 +102,9 @@ func TestDocuments(t *testing.T) {
 
 	t.Run("update document", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -130,8 +136,9 @@ func TestDocuments(t *testing.T) {
 
 	t.Run("delete document", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -156,8 +163,9 @@ func TestDocuments(t *testing.T) {
 
 	t.Run("invalid document ID format", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db)
+		http.Documents(mux, db, ai)
 
 		// Use an ID with invalid characters (uppercase and hyphen not allowed)
 		req := httptest.NewRequest("GET", "/documents/INVALID-ID", nil)
@@ -166,5 +174,36 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusNotFound, w.Code) // Should return 404 for route not found
+	})
+
+	t.Run("create document with chunks", func(t *testing.T) {
+		db := sqltest.NewDatabase(t)
+		ai := aitest.NewClient(t)
+		mux := chi.NewRouter()
+		http.Documents(mux, db, ai)
+
+		// Create a document with content that should be chunked
+		content := "This is paragraph one.\n\nThis is paragraph two.\n\nThis is paragraph three."
+		reqBody := http.CreateDocumentRequest{Content: content}
+		reqBodyBytes, err := json.Marshal(reqBody)
+		is.NotError(t, err)
+
+		req := httptest.NewRequest("POST", "/documents", bytes.NewReader(reqBodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		mux.ServeHTTP(w, req)
+
+		is.Equal(t, stdhttp.StatusCreated, w.Code)
+
+		var resp http.CreateDocumentResponse
+		err = json.Unmarshal(w.Body.Bytes(), &resp)
+		is.NotError(t, err)
+		is.Equal(t, content, resp.Document.Content)
+
+		// Verify chunks were created
+		chunks, err := db.GetDocumentChunks(context.Background(), resp.Document.ID)
+		is.NotError(t, err)
+		is.Equal(t, 3, len(chunks)) // Should have 3 chunks for 3 paragraphs
 	})
 }

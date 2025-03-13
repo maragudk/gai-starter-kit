@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/pkoukk/tiktoken-go v0.1.7
 	golang.org/x/sync v0.12.0
 	maragu.dev/env v0.2.0
 	maragu.dev/errors v0.3.0
@@ -17,6 +18,8 @@ require (
 
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/maragudk/goqite v0.2.3 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect

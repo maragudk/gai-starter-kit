@@ -2,7 +2,6 @@ package sql_test
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,14 +15,14 @@ import (
 func TestDocuments_CRUD(t *testing.T) {
 	t.Run("create, read, update, delete", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
-		c := aitest.NewClient(t)
+		ai := aitest.NewClient(t)
 
 		// Create
 		doc := model.Document{
 			Content: "Test document content",
 		}
 
-		chunks := stringToChunks(t, c.EmbedString, doc.Content)
+		chunks := stringToChunks(t, ai.EmbedString, doc.Content)
 
 		created, err := db.CreateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
@@ -44,7 +43,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		doc.ID = created.ID
 		doc.Content = "Updated content"
 
-		chunks = stringToChunks(t, c.EmbedString, doc.Content)
+		chunks = stringToChunks(t, ai.EmbedString, doc.Content)
 
 		updated, err := db.UpdateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
@@ -95,25 +94,12 @@ func TestDocuments_CRUD(t *testing.T) {
 	})
 }
 
-// stringToChunks based on whitespace.
 func stringToChunks(t *testing.T, embedder func(context.Context, string) ([]byte, error), content string) []model.Chunk {
 	t.Helper()
 
-	parts := strings.Split(content, " ")
-	var chunks []model.Chunk
-	for i, part := range parts {
-		chunks = append(chunks, model.Chunk{
-			Index:     i,
-			Content:   part,
-			Embedding: must(embedder(t.Context(), part)),
-		})
+	chunks, err := model.CreateDocumentChunks(t.Context(), content, embedder)
+	if err != nil {
+		t.Fatal(err)
 	}
 	return chunks
-}
-
-func must[T any](v T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return v
 }

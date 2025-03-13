@@ -11,11 +11,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"app/ai"
 	"app/sql"
 )
 
 // Server holds dependencies for the HTTP server as well as the HTTP server itself.
 type Server struct {
+	ai     *ai.Client
 	db     *sql.Database
 	log    *slog.Logger
 	mux    chi.Router
@@ -23,6 +25,7 @@ type Server struct {
 }
 
 type NewServerOptions struct {
+	AI  *ai.Client
 	DB  *sql.Database
 	Log *slog.Logger
 }
@@ -35,6 +38,7 @@ func NewServer(opts NewServerOptions) *Server {
 	mux := chi.NewMux()
 
 	return &Server{
+		ai:  opts.AI,
 		db:  opts.DB,
 		log: opts.Log,
 		mux: mux,

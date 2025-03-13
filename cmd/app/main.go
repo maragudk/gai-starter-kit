@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"maragu.dev/env"
 
+	"app/ai"
 	"app/http"
 	"app/sql"
 )
@@ -47,8 +48,16 @@ func start(log *slog.Logger) error {
 		return err
 	}
 
-	// Set up the HTTP server, injecting the database and logger
+	// Set up the AI client for chat completion and embeddings
+	ai := ai.NewClient(ai.NewClientOptions{
+		Log:                  log,
+		ChatCompleterBaseURL: env.GetStringOrDefault("AI_CHAT_COMPLETER_BASE_URL", "http://localhost:8081/v1"),
+		EmbedderBaseURL:      env.GetStringOrDefault("AI_EMBEDDER_BASE_URL", "http://localhost:8082/v1"),
+	})
+
+	// Set up the HTTP server, injecting the database, AI client, and logger
 	s := http.NewServer(http.NewServerOptions{
+		AI:  ai,
 		DB:  db,
 		Log: log,
 	})
