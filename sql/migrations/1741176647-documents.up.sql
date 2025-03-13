@@ -44,5 +44,5 @@ end;
 
 create virtual table chunk_embeddings using vec0(
   chunkID text primary key references chunks (id) on delete cascade,
-  embedding bit[1024]
+  embedding float[1024]
 );

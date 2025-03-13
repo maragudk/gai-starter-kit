@@ -26,7 +26,7 @@ func (d *Database) Search(ctx context.Context, q string, embedding []byte) ([]mo
 				1 as source
 			from chunks
 				join chunks_fts on (chunks.rowid = chunks_fts.rowid)
-			where chunks_fts match ?
+			where chunks_fts.content match ?
 			order by bm25(chunks_fts)
 		),
 
@@ -37,7 +37,10 @@ func (d *Database) Search(ctx context.Context, q string, embedding []byte) ([]mo
 				2 as source
 			from chunks
 				join chunk_embeddings on (chunks.id = chunk_embeddings.chunkID)
-			where k = 100 and distance < 0.75 and embedding match vec_quantize_binary(?)
+			where
+				k = 100 and
+				distance < 0.75 and
+				embedding match ?
 			order by distance
 		),
 
@@ -48,8 +51,8 @@ func (d *Database) Search(ctx context.Context, q string, embedding []byte) ([]mo
 		)
 
 		select distinct chunks.*
-		from combined
-			join chunks using (id)
+		from chunks
+			join combined using (id)
 		order by combined.source, combined.rank_number`
 
 	var chunks []model.Chunk
