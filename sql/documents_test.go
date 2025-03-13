@@ -1,7 +1,6 @@
 package sql_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -22,7 +21,8 @@ func TestDocuments_CRUD(t *testing.T) {
 			Content: "Test document content",
 		}
 
-		chunks := stringToChunks(t, ai.EmbedString, doc.Content)
+		chunks, err := doc.Chunk(t.Context(), ai.EmbedString)
+		is.NotError(t, err)
 
 		created, err := db.CreateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
@@ -43,7 +43,8 @@ func TestDocuments_CRUD(t *testing.T) {
 		doc.ID = created.ID
 		doc.Content = "Updated content"
 
-		chunks = stringToChunks(t, ai.EmbedString, doc.Content)
+		chunks, err = doc.Chunk(t.Context(), ai.EmbedString)
+		is.NotError(t, err)
 
 		updated, err := db.UpdateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
@@ -92,14 +93,4 @@ func TestDocuments_CRUD(t *testing.T) {
 		is.Equal(t, "Document 2", docs[1].Content)
 		is.Equal(t, "Document 1", docs[2].Content)
 	})
-}
-
-func stringToChunks(t *testing.T, embedder func(context.Context, string) ([]byte, error), content string) []model.Chunk {
-	t.Helper()
-
-	chunks, err := model.CreateDocumentChunks(t.Context(), content, embedder)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return chunks
 }

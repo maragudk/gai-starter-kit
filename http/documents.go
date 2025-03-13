@@ -81,7 +81,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			Content: req.Content,
 		}
 
-		chunks, err := model.CreateDocumentChunks(r.Context(), req.Content, ai.EmbedString)
+		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating document chunks")
 		}
@@ -134,7 +134,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			Content: req.Content,
 		}
 
-		chunks, err := model.CreateDocumentChunks(r.Context(), req.Content, ai.EmbedString)
+		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating document chunks")
 		}
