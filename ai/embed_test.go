@@ -20,7 +20,7 @@ func TestClient_Embed(t *testing.T) {
 	})
 }
 
-func TestClient_Embed_Embedding(t *testing.T) {
+func TestClient_EmbedString(t *testing.T) {
 	t.Run("can return an embedding for a string", func(t *testing.T) {
 		c := aitest.NewClient(t)
 

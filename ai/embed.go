@@ -27,7 +27,7 @@ func (c *Client) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResp
 
 var _ gai.Embedder[float32] = (*Client)(nil)
 
-// EmbedString as a convenience wrapper around [Client.Embed] and [sqlitevec.SerializeEmbedding].
+// EmbedString is a convenience wrapper around [Client.Embed] and [sqlitevec.SerializeEmbedding].
 func (c *Client) EmbedString(ctx context.Context, s string) ([]byte, error) {
 	res, err := c.Embed(ctx, gai.EmbedRequest{
 		Input: strings.NewReader(s),
