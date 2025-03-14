@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -23,152 +24,111 @@ type embedder interface {
 	EmbedString(ctx context.Context, s string) ([]byte, error)
 }
 
-type CreateDocumentRequest struct {
-	Content string
-}
-
-func (r CreateDocumentRequest) Validate() error {
-	if r.Content == "" {
-		return errors.New("content is required")
-	}
-	return nil
-}
-
-type CreateDocumentResponse struct {
-	Document model.Document
-}
-
-// StatusCode implements the statusCodeGiver interface.
-func (r *CreateDocumentResponse) StatusCode() int {
-	return http.StatusCreated
-}
-
-type ListDocumentsResponse struct {
-	Documents []model.Document
-}
-
-type GetDocumentResponse struct {
-	Document model.Document
-}
-
-type UpdateDocumentRequest struct {
-	Content string
-}
-
-func (r UpdateDocumentRequest) Validate() error {
-	if r.Content == "" {
-		return errors.New("content is required")
-	}
-	return nil
-}
-
-type UpdateDocumentResponse struct {
-	Document model.Document
-}
-
-type DeleteDocumentResponse struct {
-	Success bool
-}
-
-// StatusCode implements the statusCodeGiver interface.
-func (r *DeleteDocumentResponse) StatusCode() int {
-	return http.StatusNoContent
-}
-
 func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
-	mux.Post("/documents", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, req CreateDocumentRequest) (*CreateDocumentResponse, error) {
+	mux.Post("/documents", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return httph.HTTPError{Code: http.StatusBadRequest, Err: errors.Wrap(err, "error reading request body")}
+		}
+
 		doc := model.Document{
-			Content: req.Content,
+			Content: string(body),
 		}
 
 		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating document chunks")
+			return errors.Wrap(err, "error creating document chunks")
 		}
 
-		created, err := db.CreateDocument(r.Context(), doc, chunks)
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating document")
+		if _, err := db.CreateDocument(r.Context(), doc, chunks); err != nil {
+			return errors.Wrap(err, "error creating document")
 		}
 
-		return &CreateDocumentResponse{
-			Document: created,
-		}, nil
+		w.WriteHeader(http.StatusCreated)
+
+		return nil
 	}))
 
-	mux.Get("/documents", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, _ any) (*ListDocumentsResponse, error) {
+	mux.Get("/documents", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		docs, err := db.ListDocuments(r.Context())
 		if err != nil {
-			return nil, errors.Wrap(err, "error listing documents")
+			return errors.Wrap(err, "error listing documents")
 		}
 
-		return &ListDocumentsResponse{
-			Documents: docs,
-		}, nil
+		for _, doc := range docs {
+			w.Write([]byte("- [" + doc.ID + "](/documents/" + doc.ID + ")\n"))
+		}
+
+		return nil
 	}))
 
-	mux.Get("/documents/{id:[a-z0-9_]+}", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, _ any) (*GetDocumentResponse, error) {
+	mux.Get("/documents/{id:[a-z0-9_]+}", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		id := model.ID(chi.URLParam(r, "id"))
 
 		doc, err := db.GetDocument(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
-				return nil, httph.HTTPError{
+				return httph.HTTPError{
 					Code: http.StatusNotFound,
 					Err:  errors.New("document not found"),
 				}
 			}
-			return nil, errors.Wrap(err, "error getting document")
+			return errors.Wrap(err, "error getting document")
 		}
 
-		return &GetDocumentResponse{
-			Document: doc,
-		}, nil
+		w.Write([]byte(doc.Content))
+
+		return nil
 	}))
 
-	mux.Put("/documents/{id:[a-z0-9_]+}", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, req UpdateDocumentRequest) (*UpdateDocumentResponse, error) {
+	mux.Put("/documents/{id:[a-z0-9_]+}", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		id := model.ID(chi.URLParam(r, "id"))
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return httph.HTTPError{Code: http.StatusBadRequest, Err: errors.Wrap(err, "error reading request body")}
+		}
 
 		doc := model.Document{
 			ID:      id,
-			Content: req.Content,
+			Content: string(body),
 		}
 
 		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating document chunks")
+			return errors.Wrap(err, "error creating document chunks")
 		}
 
 		doc, err = db.UpdateDocument(r.Context(), doc, chunks)
 		if err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
-				return nil, httph.HTTPError{
+				return httph.HTTPError{
 					Code: http.StatusNotFound,
 					Err:  errors.New("document not found"),
 				}
 			}
-			return nil, errors.Wrap(err, "error updating document")
+			return errors.Wrap(err, "error updating document")
 		}
 
-		return &UpdateDocumentResponse{
-			Document: doc,
-		}, nil
+		w.Write(body)
+
+		return nil
 	}))
 
-	mux.Delete("/documents/{id:[a-z0-9_]+}", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, _ any) (*DeleteDocumentResponse, error) {
+	mux.Delete("/documents/{id:[a-z0-9_]+}", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		id := model.ID(chi.URLParam(r, "id"))
 
 		if err := db.DeleteDocument(r.Context(), id); err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
-				return nil, httph.HTTPError{
+				return httph.HTTPError{
 					Code: http.StatusNotFound,
 					Err:  errors.New("document not found"),
 				}
 			}
-			return nil, errors.Wrap(err, "error deleting document")
+			return errors.Wrap(err, "error deleting document")
 		}
 
-		// Return empty response with 204 No Content status code
-		return &DeleteDocumentResponse{}, nil
+		w.WriteHeader(http.StatusNoContent)
+		return nil
 	}))
 }

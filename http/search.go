@@ -14,23 +14,23 @@ type searcher interface {
 	Search(ctx context.Context, query string, embedding []byte) ([]model.Chunk, error)
 }
 
-type SearchResponse struct {
-	Chunks []model.Chunk
-}
-
 func Search(mux chi.Router, db searcher, ai embedder) {
-	mux.Get("/search", httph.JSONHandler(func(w http.ResponseWriter, r *http.Request, _ any) (*SearchResponse, error) {
+	mux.Get("/search", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		q := r.URL.Query().Get("q")
 		embedding, err := ai.EmbedString(r.Context(), q)
 		if err != nil {
-			return nil, errors.Wrap(err, "error embedding")
+			return errors.Wrap(err, "error embedding")
 		}
 
 		chunks, err := db.Search(r.Context(), q, embedding)
 		if err != nil {
-			return nil, errors.Wrap(err, "error searching")
+			return errors.Wrap(err, "error searching")
 		}
 
-		return &SearchResponse{Chunks: chunks}, nil
+		for _, chunk := range chunks {
+			w.Write([]byte("- [" + chunk.Content + "](/documents/" + string(chunk.ID) + ")\n"))
+		}
+
+		return nil
 	}))
 }

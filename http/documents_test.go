@@ -3,9 +3,9 @@ package http_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	stdhttp "net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -24,27 +24,17 @@ func TestDocuments(t *testing.T) {
 		mux := chi.NewRouter()
 		http.Documents(mux, db, ai)
 
-		reqBody := http.CreateDocumentRequest{
-			Content: "Test document",
-		}
-		reqBodyBytes, err := json.Marshal(reqBody)
-		is.NotError(t, err)
+		content := "Test document"
+		reqBodyBytes := []byte(content)
 
 		req := httptest.NewRequest("POST", "/documents", bytes.NewReader(reqBodyBytes))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "text/markdown")
 		w := httptest.NewRecorder()
 
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusCreated, w.Code)
-
-		var resp http.CreateDocumentResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.True(t, resp.Document.ID != "")
-		is.True(t, !resp.Document.Created.T.IsZero())
-		is.True(t, !resp.Document.Updated.T.IsZero())
-		is.Equal(t, reqBody.Content, resp.Document.Content)
+		is.Equal(t, 0, w.Body.Len()) // No response body expected
 	})
 
 	t.Run("list documents", func(t *testing.T) {
@@ -65,13 +55,10 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-
-		var resp http.ListDocumentsResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.Equal(t, 1, len(resp.Documents))
-		is.Equal(t, createdDoc.ID, resp.Documents[0].ID)
-		is.Equal(t, createdDoc.Content, resp.Documents[0].Content)
+		
+		// Check that the response contains a markdown link to the document
+		expectedLink := "- [" + string(createdDoc.ID) + "](/documents/" + string(createdDoc.ID) + ")\n"
+		is.Equal(t, expectedLink, w.Body.String())
 	})
 
 	t.Run("get document", func(t *testing.T) {
@@ -92,12 +79,9 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-
-		var resp http.GetDocumentResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.Equal(t, createdDoc.ID, resp.Document.ID)
-		is.Equal(t, createdDoc.Content, resp.Document.Content)
+		
+		// The response should be the document content as plain text
+		is.Equal(t, createdDoc.Content, w.Body.String())
 	})
 
 	t.Run("update document", func(t *testing.T) {
@@ -112,26 +96,19 @@ func TestDocuments(t *testing.T) {
 		is.NotError(t, err)
 
 		// Now update the document
-		reqBody := http.UpdateDocumentRequest{
-			Content: "Updated content",
-		}
-		reqBodyBytes, err := json.Marshal(reqBody)
-		is.NotError(t, err)
+		updatedContent := "Updated content"
+		reqBodyBytes := []byte(updatedContent)
 
 		req := httptest.NewRequest("PUT", "/documents/"+string(createdDoc.ID), bytes.NewReader(reqBodyBytes))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "text/markdown")
 		w := httptest.NewRecorder()
 
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-
-		var resp http.UpdateDocumentResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.Equal(t, createdDoc.ID, resp.Document.ID)
-		is.True(t, createdDoc.Content != resp.Document.Content)
-		is.Equal(t, reqBody.Content, resp.Document.Content)
+		
+		// The response should contain the updated content directly
+		is.Equal(t, updatedContent, w.Body.String())
 	})
 
 	t.Run("delete document", func(t *testing.T) {
@@ -184,25 +161,30 @@ func TestDocuments(t *testing.T) {
 
 		// Create a document with content that should be chunked
 		content := "This is paragraph one.\n\nThis is paragraph two.\n\nThis is paragraph three."
-		reqBody := http.CreateDocumentRequest{Content: content}
-		reqBodyBytes, err := json.Marshal(reqBody)
-		is.NotError(t, err)
+		reqBodyBytes := []byte(content)
 
 		req := httptest.NewRequest("POST", "/documents", bytes.NewReader(reqBodyBytes))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "text/markdown")
 		w := httptest.NewRecorder()
 
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusCreated, w.Code)
 
-		var resp http.CreateDocumentResponse
-		err = json.Unmarshal(w.Body.Bytes(), &resp)
-		is.NotError(t, err)
-		is.Equal(t, content, resp.Document.Content)
-
+		// List documents to get the ID of the created document
+		reqList := httptest.NewRequest("GET", "/documents", nil)
+		wList := httptest.NewRecorder()
+		mux.ServeHTTP(wList, reqList)
+		
+		// Extract document ID from the list response
+		responseLine := wList.Body.String()
+		// Parse the document ID from the Markdown link format: "- [ID](/documents/ID)"
+		startPos := strings.Index(responseLine, "[") + 1
+		endPos := strings.Index(responseLine, "]")
+		id := model.ID(responseLine[startPos:endPos])
+		
 		// Verify chunks were created
-		chunks, err := db.GetDocumentChunks(context.Background(), resp.Document.ID)
+		chunks, err := db.GetDocumentChunks(context.Background(), id)
 		is.NotError(t, err)
 		is.True(t, len(chunks) > 0) // Should have at least one chunk
 	})

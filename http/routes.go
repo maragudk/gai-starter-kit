@@ -12,7 +12,7 @@ func (s *Server) setupRoutes() {
 		r.Use(middleware.RealIP)
 
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.SetHeader("Content-Type", "application/json"))
+			r.Use(middleware.SetHeader("Content-Type", "text/markdown"))
 
 			Documents(r, s.db, s.ai)
 			Search(r, s.db, s.ai)

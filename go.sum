@@ -67,8 +67,8 @@ maragu.dev/gai v0.0.0-20250313123402-8c9a025c3287 h1:idTIF2ceGFQnvEns78yrte1pm+l
 maragu.dev/gai v0.0.0-20250313123402-8c9a025c3287/go.mod h1:XikBR/X5krDNXqgd0Ncaggwmh89fyaURn5M1xAaKKaI=
 maragu.dev/gai-openai v0.0.0-20250311111057-ade511297a93 h1:GUw2+8O223cWwGtc4djxYgrk1OR+pMucMve0o/0cj3U=
 maragu.dev/gai-openai v0.0.0-20250311111057-ade511297a93/go.mod h1:pEQZkn+yxYLAY1zvorKE48wTVegdylbfewRJVmTQEoA=
-maragu.dev/httph v0.3.5 h1:g0ebwFA8Hv+UOoJNcYdHy9gqPLWHTf2kHXEq3Gma3Ac=
-maragu.dev/httph v0.3.5/go.mod h1:DGE2xtKBbL/ukcCGK/IvmUA1ni6ylusjWBgAMkCvTnc=
+maragu.dev/httph v0.3.6 h1:VDvph5AV/WXY1OXUDcbGTTTCgPiDvXqVDCeFT9TZBWU=
+maragu.dev/httph v0.3.6/go.mod h1:DGE2xtKBbL/ukcCGK/IvmUA1ni6ylusjWBgAMkCvTnc=
 maragu.dev/is v0.2.0 h1:poeuVEA5GG3vrDpGmzo2KjWtIMZmqUyvGnOB0/pemig=
 maragu.dev/is v0.2.0/go.mod h1:bviaM5S0fBshCw7wuumFGTju/izopZ/Yvq4g7Klc7y8=
 maragu.dev/migrate v0.6.0 h1:gJLAIVaRh9z9sN55Q2sWwScpEH+JsT6N0L1DnzedXFE=
