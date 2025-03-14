@@ -3,7 +3,7 @@
 ## Build/Test/Lint Commands
 - Build: `make start` (builds CSS and runs app)
 - Test all: `make test` (runs tests with coverage)
-- Test single: `go test -v -tags sqlite_fts5 ./path/to/package -run TestName`
+- Test single: `go test -tags sqlite_fts5 ./path/to/package -run TestName`
 - Coverage: `make cover` (opens HTML coverage report)
 - Lint: `make lint` (runs golangci-lint)
 - Build Docker: `make build-docker` (builds CSS and Docker images)
