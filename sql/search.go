@@ -3,6 +3,7 @@ package sql
 import (
 	"app/model"
 	"context"
+	"fmt"
 	"strings"
 
 	"maragu.dev/errors"
@@ -11,10 +12,8 @@ import (
 // Search chunks that match the query and embedding. Matches using FTS first, then vector similarity search.
 // See https://alexgarcia.xyz/blog/2024/sqlite-vec-hybrid-search/ for the search query.
 func (d *Database) Search(ctx context.Context, q string, embedding []byte) ([]model.Chunk, error) {
-	// Do exact matches
-	q = strings.TrimPrefix(q, `"`)
-	q = strings.TrimSuffix(q, `"`)
-	q = `"` + q + `"`
+	// Do exact matches only in FTS for now
+	q = fmt.Sprintf(`"%v"`, strings.Trim(q, `"`))
 
 	query := `
 		with
