@@ -56,7 +56,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 		}
 
 		for _, doc := range docs {
-			w.Write([]byte("- [" + doc.ID + "](/documents/" + doc.ID + ")\n"))
+			_, _ = w.Write([]byte("- [" + doc.ID + "](/documents/" + doc.ID + ")\n"))
 		}
 
 		return nil
@@ -76,7 +76,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			return errors.Wrap(err, "error getting document")
 		}
 
-		w.Write([]byte(doc.Content))
+		_, _ = w.Write([]byte(doc.Content))
 
 		return nil
 	}))
@@ -99,8 +99,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			return errors.Wrap(err, "error creating document chunks")
 		}
 
-		doc, err = db.UpdateDocument(r.Context(), doc, chunks)
-		if err != nil {
+		if _, err = db.UpdateDocument(r.Context(), doc, chunks); err != nil {
 			if errors.Is(err, model.ErrorDocumentNotFound) {
 				return httph.HTTPError{
 					Code: http.StatusNotFound,
@@ -110,7 +109,7 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			return errors.Wrap(err, "error updating document")
 		}
 
-		w.Write(body)
+		_, _ = w.Write(body)
 
 		return nil
 	}))

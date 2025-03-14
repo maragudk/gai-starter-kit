@@ -28,7 +28,7 @@ func Search(mux chi.Router, db searcher, ai embedder) {
 		}
 
 		for _, chunk := range chunks {
-			w.Write([]byte("- [" + chunk.Content + "](/documents/" + string(chunk.ID) + ")\n"))
+			_, _ = w.Write([]byte("- [" + chunk.Content + "](/documents/" + string(chunk.ID) + ")\n"))
 		}
 
 		return nil
