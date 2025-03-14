@@ -79,7 +79,7 @@ func TestDatabase_Search(t *testing.T) {
 		chunks, err := doc.Chunk(t.Context(), ai.EmbedString)
 		is.NotError(t, err)
 
-		doc, err = db.CreateDocument(t.Context(), doc, chunks)
+		_, err = db.CreateDocument(t.Context(), doc, chunks)
 		is.NotError(t, err)
 
 		// Search for unrelated content
