@@ -15,6 +15,7 @@ func (s *Server) setupRoutes() {
 			r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
 			Documents(r, s.db, s.ai)
+			Search(r, s.db, s.ai)
 		})
 	})
 }
