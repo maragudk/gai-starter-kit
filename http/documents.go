@@ -4,17 +4,19 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"maragu.dev/errors"
 	"maragu.dev/httph"
 
 	"app/model"
+	"app/sql"
 )
 
 type documentCRUDer interface {
 	CreateDocument(ctx context.Context, d model.Document, chunks []model.Chunk) (model.Document, error)
-	ListDocuments(ctx context.Context) ([]model.Document, error)
+	ListDocuments(ctx context.Context, opts sql.ListDocumentsOptions) ([]model.Document, error)
 	GetDocument(ctx context.Context, id model.ID) (model.Document, error)
 	UpdateDocument(ctx context.Context, d model.Document, chunks []model.Chunk) (model.Document, error)
 	DeleteDocument(ctx context.Context, id model.ID) error
@@ -50,13 +52,36 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 	}))
 
 	mux.Get("/documents", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
-		docs, err := db.ListDocuments(r.Context())
+		limitStr := r.URL.Query().Get("limit")
+		cursor := model.ID(r.URL.Query().Get("cursor"))
+
+		var limit int
+		if limitStr != "" {
+			n, err := strconv.Atoi(limitStr)
+			if err != nil {
+				return httph.HTTPError{Err: errors.Wrap(err, "invalid limit"), Code: http.StatusBadRequest}
+			}
+			limit = n
+		}
+
+		docs, err := db.ListDocuments(r.Context(), sql.ListDocumentsOptions{
+			Limit:  limit,
+			Cursor: cursor,
+		})
+
 		if err != nil {
 			return errors.Wrap(err, "error listing documents")
 		}
 
+		// Write the document list as markdown links
 		for _, doc := range docs {
-			_, _ = w.Write([]byte("- [" + doc.ID + "](/documents/" + doc.ID + ")\n"))
+			_, _ = w.Write([]byte("- [" + string(doc.ID) + "](/documents/" + string(doc.ID) + ")\n"))
+		}
+
+		// If we have documents and there might be more, include pagination hint
+		if len(docs) > 0 && len(docs) == limit {
+			lastID := docs[len(docs)-1].ID
+			_, _ = w.Write([]byte("\n[Next Page](/documents?cursor=" + string(lastID) + "&limit=" + limitStr + ")\n"))
 		}
 
 		return nil
