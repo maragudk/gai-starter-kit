@@ -62,15 +62,49 @@ func (d *Database) saveChunks(ctx context.Context, tx *sql.Tx, docID model.ID, c
 	return nil
 }
 
-func (d *Database) ListDocuments(ctx context.Context) ([]model.Document, error) {
-	query := `
-		select id, created, updated, content
-		from documents
-		order by created desc
-	`
+type ListDocumentsOptions struct {
+	// Limit is the maximum number of documents to return.
+	// Default is 100 if not specified.
+	Limit int
+
+	// Cursor is the ID of the last document seen.
+	// If provided, the result will only include documents with IDs greater than the cursor.
+	Cursor model.ID
+}
+
+func (d *Database) ListDocuments(ctx context.Context, opts ListDocumentsOptions) ([]model.Document, error) {
+	if opts.Limit < 0 {
+		panic("limit cannot be negative")
+	}
+
+	if opts.Limit == 0 {
+		opts.Limit = 100
+	}
+
+	var query string
+	var args []any
+
+	if opts.Cursor != "" {
+		query = `
+			select id, created, updated, content
+			from documents
+			where id > ?
+			order by id
+			limit ?
+		`
+		args = []any{opts.Cursor, opts.Limit}
+	} else {
+		query = `
+			select id, created, updated, content
+			from documents
+			order by id
+			limit ?
+		`
+		args = []any{opts.Limit}
+	}
 
 	var docs []model.Document
-	if err := d.H.Select(ctx, &docs, query); err != nil {
+	if err := d.H.Select(ctx, &docs, query, args...); err != nil {
 		return nil, errors.Wrap(err, "error listing documents")
 	}
 
