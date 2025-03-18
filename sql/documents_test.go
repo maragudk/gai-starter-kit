@@ -96,7 +96,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		for _, doc := range docs {
 			contentMap[doc.Content] = true
 		}
-		
+
 		is.Equal(t, 3, len(contentMap))
 		is.True(t, contentMap["Document 1"])
 		is.True(t, contentMap["Document 2"])
@@ -114,7 +114,7 @@ func TestDocuments_CRUD(t *testing.T) {
 			"Paginated Document D",
 			"Paginated Document E",
 		}
-		
+
 		for _, content := range docContents {
 			doc := model.Document{Content: content}
 			_, err := db.CreateDocument(t.Context(), doc, nil)
@@ -125,7 +125,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		allDocs, err := db.ListDocuments(t.Context(), sql.ListDocumentsOptions{})
 		is.NotError(t, err)
 		is.Equal(t, 5, len(allDocs))
-		
+
 		// Verify all contents are present (regardless of order)
 		contentMap := make(map[string]bool)
 		for _, doc := range allDocs {
@@ -158,7 +158,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		for _, doc := range firstPageDocs {
 			firstPageIDs[doc.ID] = true
 		}
-		
+
 		for _, doc := range secondPageDocs {
 			// Second page should not contain IDs from first page
 			is.True(t, !firstPageIDs[doc.ID])
@@ -172,23 +172,23 @@ func TestDocuments_CRUD(t *testing.T) {
 		is.NotError(t, err)
 		// Third page should have exactly 1 document
 		is.Equal(t, 1, len(thirdPageDocs))
-		
+
 		// Ensure third page has unique IDs
 		for _, doc := range thirdPageDocs {
 			// Third page should not contain IDs from first page
 			is.True(t, !firstPageIDs[doc.ID])
 		}
-		
+
 		secondPageIDs := make(map[model.ID]bool)
 		for _, doc := range secondPageDocs {
 			secondPageIDs[doc.ID] = true
 		}
-		
+
 		for _, doc := range thirdPageDocs {
 			// Third page should not contain IDs from second page
 			is.True(t, !secondPageIDs[doc.ID])
 		}
-		
+
 		// Verify all unique IDs total 5 documents
 		allIDs := make(map[model.ID]bool)
 		for _, doc := range firstPageDocs {
@@ -200,7 +200,7 @@ func TestDocuments_CRUD(t *testing.T) {
 		for _, doc := range thirdPageDocs {
 			allIDs[doc.ID] = true
 		}
-		
+
 		// All pages combined should contain all 5 document IDs
 		is.Equal(t, 5, len(allIDs))
 	})
