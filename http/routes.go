@@ -14,7 +14,7 @@ func (s *Server) setupRoutes() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.SetHeader("Content-Type", "text/markdown"))
 
-			Documents(r, s.db, s.ai)
+			Documents(r, s.db, s.ai, s.log)
 			Search(r, s.db, s.ai)
 		})
 	})

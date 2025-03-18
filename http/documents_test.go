@@ -3,6 +3,7 @@ package http_test
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	stdhttp "net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,11 +19,13 @@ import (
 )
 
 func TestDocuments(t *testing.T) {
+	log := slog.New(slog.DiscardHandler)
+
 	t.Run("create document", func(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		content := "Test document"
 		reqBodyBytes := []byte(content)
@@ -41,7 +44,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -55,7 +58,7 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-		
+
 		// Check that the response contains a markdown link to the document
 		expectedLink := "- [" + string(createdDoc.ID) + "](/documents/" + string(createdDoc.ID) + ")\n"
 		is.Equal(t, expectedLink, w.Body.String())
@@ -65,7 +68,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -79,7 +82,7 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-		
+
 		// The response should be the document content as plain text
 		is.Equal(t, createdDoc.Content, w.Body.String())
 	})
@@ -88,7 +91,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -106,7 +109,7 @@ func TestDocuments(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		is.Equal(t, stdhttp.StatusOK, w.Code)
-		
+
 		// The response should contain the updated content directly
 		is.Equal(t, updatedContent, w.Body.String())
 	})
@@ -115,7 +118,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// First create a document
 		doc := model.Document{Content: "Test document"}
@@ -142,7 +145,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// Use an ID with invalid characters (uppercase and hyphen not allowed)
 		req := httptest.NewRequest("GET", "/documents/INVALID-ID", nil)
@@ -157,7 +160,7 @@ func TestDocuments(t *testing.T) {
 		db := sqltest.NewDatabase(t)
 		ai := aitest.NewClient(t)
 		mux := chi.NewRouter()
-		http.Documents(mux, db, ai)
+		http.Documents(mux, db, ai, log)
 
 		// Create a document with content that should be chunked
 		content := "This is paragraph one.\n\nThis is paragraph two.\n\nThis is paragraph three."
@@ -175,14 +178,14 @@ func TestDocuments(t *testing.T) {
 		reqList := httptest.NewRequest("GET", "/documents", nil)
 		wList := httptest.NewRecorder()
 		mux.ServeHTTP(wList, reqList)
-		
+
 		// Extract document ID from the list response
 		responseLine := wList.Body.String()
 		// Parse the document ID from the Markdown link format: "- [ID](/documents/ID)"
 		startPos := strings.Index(responseLine, "[") + 1
 		endPos := strings.Index(responseLine, "]")
 		id := model.ID(responseLine[startPos:endPos])
-		
+
 		// Verify chunks were created
 		chunks, err := db.GetDocumentChunks(context.Background(), id)
 		is.NotError(t, err)

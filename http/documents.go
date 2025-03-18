@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -26,7 +27,7 @@ type embedder interface {
 	EmbedString(ctx context.Context, s string) ([]byte, error)
 }
 
-func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
+func Documents(mux chi.Router, db documentCRUDer, ai embedder, log *slog.Logger) {
 	mux.Post("/documents", httph.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -39,10 +40,12 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 
 		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
-			return errors.Wrap(err, "error creating document chunks")
+			log.Info("Error creating document chunks", "error", err)
+			return httph.HTTPError{Err: errors.Wrap(err, "error creating document chunks"), Code: http.StatusBadGateway}
 		}
 
 		if _, err := db.CreateDocument(r.Context(), doc, chunks); err != nil {
+			log.Info("Error creating document", "error", err)
 			return errors.Wrap(err, "error creating document")
 		}
 
@@ -68,8 +71,8 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 			Limit:  limit,
 			Cursor: cursor,
 		})
-
 		if err != nil {
+			log.Info("Error listing documents", "error", err)
 			return errors.Wrap(err, "error listing documents")
 		}
 
@@ -98,6 +101,8 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 					Err:  errors.New("document not found"),
 				}
 			}
+
+			log.Info("Error getting document", "error", err)
 			return errors.Wrap(err, "error getting document")
 		}
 
@@ -121,7 +126,8 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 
 		chunks, err := doc.Chunk(r.Context(), ai.EmbedString)
 		if err != nil {
-			return errors.Wrap(err, "error creating document chunks")
+			log.Info("Error creating document chunks", "error", err)
+			return httph.HTTPError{Err: errors.Wrap(err, "error creating document chunks"), Code: http.StatusBadGateway}
 		}
 
 		if _, err = db.UpdateDocument(r.Context(), doc, chunks); err != nil {
@@ -131,6 +137,8 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 					Err:  errors.New("document not found"),
 				}
 			}
+
+			log.Info("Error updating document", "error", err)
 			return errors.Wrap(err, "error updating document")
 		}
 
@@ -149,6 +157,8 @@ func Documents(mux chi.Router, db documentCRUDer, ai embedder) {
 					Err:  errors.New("document not found"),
 				}
 			}
+
+			log.Info("Error deleting document", "error", err)
 			return errors.Wrap(err, "error deleting document")
 		}
 
