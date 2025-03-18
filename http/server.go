@@ -47,7 +47,7 @@ func NewServer(opts NewServerOptions) *Server {
 			Handler:           mux,
 			ReadTimeout:       5 * time.Second,
 			ReadHeaderTimeout: 5 * time.Second,
-			WriteTimeout:      5 * time.Second,
+			WriteTimeout:      time.Minute,
 			IdleTimeout:       5 * time.Second,
 		},
 	}
