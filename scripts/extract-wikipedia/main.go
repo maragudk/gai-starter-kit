@@ -119,11 +119,20 @@ outer:
 				currentPage = Page{}
 			} else if inPage {
 				if se.Name.Local == "title" {
-					decoder.DecodeElement(&currentPage.Title, &se)
+					err := decoder.DecodeElement(&currentPage.Title, &se)
+					if err != nil {
+						fmt.Printf("Error decoding title: %v\n", err)
+					}
 				} else if se.Name.Local == "ns" {
-					decoder.DecodeElement(&currentPage.NS, &se)
+					err := decoder.DecodeElement(&currentPage.NS, &se)
+					if err != nil {
+						fmt.Printf("Error decoding namespace: %v\n", err)
+					}
 				} else if se.Name.Local == "id" && currentPage.ID == 0 {
-					decoder.DecodeElement(&currentPage.ID, &se)
+					err := decoder.DecodeElement(&currentPage.ID, &se)
+					if err != nil {
+						fmt.Printf("Error decoding ID: %v\n", err)
+					}
 				} else if se.Name.Local == "redirect" {
 					var redirect Redirect
 					for _, attr := range se.Attr {
@@ -135,7 +144,10 @@ outer:
 					currentPage.Redirect = &redirect
 				} else if se.Name.Local == "text" {
 					var text Text
-					decoder.DecodeElement(&text, &se)
+					err := decoder.DecodeElement(&text, &se)
+					if err != nil {
+						fmt.Printf("Error decoding text: %v\n", err)
+					}
 					currentPage.Revision.Text = text
 				}
 			}
