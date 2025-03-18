@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
+	"io"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,7 +89,9 @@ func worker(jobs <-chan string, wg *sync.WaitGroup) {
 		for attempt := range maxRetries {
 			if attempt > 0 {
 				// Wait before retry
-				time.Sleep(time.Duration(500*(1<<uint(attempt))) * time.Millisecond)
+				backoff := time.Duration(500*(1<<uint(attempt))) * time.Millisecond
+				jitter := time.Duration(rand.IntN(250)) * time.Millisecond
+				time.Sleep(backoff + jitter)
 			}
 
 			if err := uploadFile(path); err != nil {
@@ -108,16 +111,19 @@ func worker(jobs <-chan string, wg *sync.WaitGroup) {
 // uploadFile reads a file and uploads it to the API
 func uploadFile(path string) error {
 	// Read file content
-	content, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
+	defer file.Close()
 
 	// Create the request
-	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewReader(content))
+	req, err := http.NewRequest(http.MethodPost, apiEndpoint, file)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	req.Header.Set("Content-Type", "text/markdown")
 
 	// Send the request
 	client := &http.Client{
@@ -132,7 +138,11 @@ func uploadFile(path string) error {
 
 	// Check response status
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		return fmt.Errorf("unexpected status code: %d (%v)", resp.StatusCode, string(body))
 	}
 
 	return nil
