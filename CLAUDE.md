@@ -22,3 +22,7 @@
 - **Prefer integration tests over mocks**: External dependencies can generally be used in tests directly, so there
   is little need for mocking. See the `sqltest` package for getting a database connection for testing,
   and the `aitest` package for getting a client for both chat completion and embedding generation.
+
+## Version control
+
+Never add the Claude Code name to commit messages.
