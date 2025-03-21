@@ -46,7 +46,7 @@ func TestDatabase_Search(t *testing.T) {
 
 		// Create document with specific content
 		doc := model.Document{
-			Content: "Five big sheep dancing joyfully to disco music",
+			Content: "Cute dog",
 		}
 
 		chunks, err := doc.Chunk(t.Context(), ai.EmbedString)
@@ -56,7 +56,7 @@ func TestDatabase_Search(t *testing.T) {
 		is.NotError(t, err)
 
 		// Search for semantically similar text
-		query := "Some animals partying"
+		query := "Sweet dogs"
 		embedding, err := ai.EmbedString(t.Context(), query)
 		is.NotError(t, err)
 
