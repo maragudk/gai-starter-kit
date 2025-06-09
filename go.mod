@@ -11,7 +11,7 @@ require (
 	maragu.dev/gai v0.0.0-20250313123402-8c9a025c3287
 	maragu.dev/gai-openai v0.0.0-20250311111057-ade511297a93
 	maragu.dev/httph v0.3.7
-	maragu.dev/is v0.3.0
+	maragu.dev/is v0.3.1
 	maragu.dev/sqlh v0.2.0
 )
 
