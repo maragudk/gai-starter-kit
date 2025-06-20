@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	golang.org/x/sync v0.15.0
 	maragu.dev/env v0.2.0
 	maragu.dev/errors v0.3.0
