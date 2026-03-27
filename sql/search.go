@@ -39,7 +39,7 @@ func (d *Database) Search(ctx context.Context, q string, embedding []byte) ([]mo
 			where
 				k = 100 and
 				distance < 0.75 and
-				embedding match ?
+				embedding match vec_quantize_binary(?)
 			order by distance
 		),
 

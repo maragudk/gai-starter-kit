@@ -52,7 +52,7 @@ func (d *Database) saveChunks(ctx context.Context, tx *sql.Tx, docID model.ID, c
 
 		query = `
 			insert into chunk_embeddings (chunkID, embedding)
-			values (?, ?)
+			values (?, vec_quantize_binary(?))
 		`
 		if err := tx.Exec(ctx, query, c.ID, c.Embedding); err != nil {
 			return errors.Wrap(err, "error creating chunk embedding")
